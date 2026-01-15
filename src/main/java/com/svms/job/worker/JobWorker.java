@@ -64,8 +64,19 @@ public class JobWorker {
             execution.setStatus(ExecutionStatus.COMPLETED);
 
         } catch (Exception e) {
-            execution.setStatus(ExecutionStatus.FAILED);
+            // execution.setStatus(ExecutionStatus.FAILED);
             execution.setErrorMessage(e.getMessage());
+            int nextAttempt = execution.getAttempt() + 1;
+
+            if (nextAttempt <= job.getMaxRetries()) {
+                execution.setAttempt(nextAttempt);
+                execution.setStatus(ExecutionStatus.SCHEDULED);
+                execution.setNextRunAt(
+                        backoffCalculator.calculateNextRun(nextAttempt));
+            } else {
+                execution.setStatus(ExecutionStatus.DEAD);
+            }
+
         } finally {
             execution.setFinishedAt(LocalDateTime.now());
             jobExecutionRepository.save(execution);
