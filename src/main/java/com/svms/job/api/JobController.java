@@ -1,9 +1,13 @@
 package com.svms.job.api;
 
+import com.svms.job.api.validation.JobRequestValidator;
 import com.svms.job.domain.JobDefinition;
 import com.svms.job.domain.JobStatus;
 import com.svms.job.repository.JobDefinitionRepository;
 import jakarta.validation.Valid;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -13,13 +17,17 @@ import java.time.LocalDateTime;
 public class JobController {
 
     private final JobDefinitionRepository repository;
+    private final JobRequestValidator Validator;
 
-    public JobController(JobDefinitionRepository repository) {
+    public JobController(JobDefinitionRepository repository, JobRequestValidator Validator) {
         this.repository = repository;
+        this.Validator = Validator;
     }
 
     @PostMapping
-    public JobDefinition createJob(@Valid @RequestBody CreateJobRequest request) {
+    public ResponseEntity<JobDefinition> createJob(@Valid @RequestBody CreateJobRequest request) {
+
+        Validator.validate(request);
 
         JobDefinition job = new JobDefinition();
         job.setName(request.getName());
@@ -29,6 +37,9 @@ public class JobController {
         job.setMaxRetries(request.getMaxRetries());
         job.setStatus(JobStatus.ACTIVE);
 
-        return repository.save(job);
+        // return repository.save(job);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(repository.save(job));
     }
 }
