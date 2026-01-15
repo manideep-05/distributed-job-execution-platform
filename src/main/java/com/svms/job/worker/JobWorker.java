@@ -8,7 +8,10 @@ import com.svms.job.handler.JobHandlerRegistry;
 import com.svms.job.repository.JobDefinitionRepository;
 import com.svms.job.repository.JobExecutionRepository;
 import com.svms.job.service.BackoffCalculator;
+import com.svms.job.service.DeadLetterService;
 import com.svms.job.service.IdempotencyService;
+
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Component
+@Slf4j
 public class JobWorker {
 
     private final JobExecutionRepository jobExecutionRepository;
@@ -26,15 +30,17 @@ public class JobWorker {
     private final JobHandlerRegistry handlerRegistry;
     private final BackoffCalculator backoffCalculator;
     private final IdempotencyService idempotencyService;
+    private final DeadLetterService deadLetterService;
 
     public JobWorker(JobExecutionRepository jobExecutionRepository, JobDefinitionRepository jobDefinitionRepository,
             JobHandlerRegistry handlerRegistry, BackoffCalculator backoffCalculator,
-            IdempotencyService idempotencyService) {
+            IdempotencyService idempotencyService, DeadLetterService deadLetterService) {
         this.jobExecutionRepository = jobExecutionRepository;
         this.jobDefinitionRepository = jobDefinitionRepository;
         this.handlerRegistry = handlerRegistry;
         this.backoffCalculator = backoffCalculator;
         this.idempotencyService = idempotencyService;
+        this.deadLetterService = deadLetterService;
     }
 
     /**
@@ -75,7 +81,7 @@ public class JobWorker {
                 jobExecutionRepository.save(execution);
                 return;
             }
-
+            log.info("Worker picked execution {}", execution.getId());
             handler.execute(job.getPayload());
             idempotencyService.markProcessed(idempotencyKey);
             Thread.sleep(2000); // simulate work
@@ -85,6 +91,7 @@ public class JobWorker {
 
         } catch (Exception e) {
             // execution.setStatus(ExecutionStatus.FAILED);
+            log.error("Execution {} failed on attempt {}", execution.getId(), execution.getAttempt());
             execution.setErrorMessage(e.getMessage());
             int nextAttempt = execution.getAttempt() + 1;
 
