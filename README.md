@@ -7,12 +7,14 @@ A fault-tolerant backend platform for executing background jobs reliably using m
 ## Problem Statement
 
 Modern backend systems rely heavily on background jobs for tasks such as:
+
 - Sending emails and notifications
 - Retrying failed payments
 - Generating reports
 - Synchronizing data between systems
 
 Traditional cron-based scheduling is insufficient in distributed systems because it does not provide guarantees around:
+
 - Duplicate execution
 - Safe retries
 - Crash recovery
@@ -25,6 +27,7 @@ This project focuses on solving these reliability problems rather than simple ti
 ## Why Not Cron?
 
 Cron jobs:
+
 - Are time-based, not state-based
 - Cannot prevent overlapping executions
 - Do not support safe retries
@@ -36,12 +39,12 @@ This platform treats failures as first-class concerns and provides controlled ex
 ---
 
 ## High-Level Architecture
+
 API → Job Definition → Scheduler → Job Execution → Worker → Job Handler
 
 API -> Retry / DLQ
 
-
-- **Scheduler** decides *when* a job should run
+- **Scheduler** decides _when_ a job should run
 - **Workers** compete to execute jobs safely
 - **Job Handlers** encapsulate business logic
 - **Database** acts as the source of truth for execution state
@@ -79,7 +82,21 @@ API -> Retry / DLQ
 
 ---
 
+## API Security
+
+Job creation APIs are protected using API-key authentication and per-key rate limiting to prevent abuse.
+
+## Failure Handling
+
+Jobs are retried with exponential backoff. After retry exhaustion, executions are moved to a Dead Letter Queue for manual investigation.
+
+## Trade-offs
+
+- In-memory rate limiting chosen for MVP
+- Database used as source of truth instead of message broker
+
+---
+
 ## Status
 
 🚧 Work in progress — currently implementing the core execution engine and reliability features.
-
