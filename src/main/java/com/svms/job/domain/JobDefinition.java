@@ -1,10 +1,13 @@
 package com.svms.job.domain;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
+@Data
 @Table(name = "job_definitions")
 public class JobDefinition {
 
