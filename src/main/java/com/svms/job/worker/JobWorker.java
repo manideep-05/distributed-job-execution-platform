@@ -95,6 +95,9 @@ public class JobWorker {
                         backoffCalculator.calculateNextRun(nextAttempt));
             } else {
                 execution.setStatus(ExecutionStatus.DEAD);
+                deadLetterService.moveToDLQ(
+                        execution.getId().toString(),
+                        e.getMessage());
             }
 
         } finally {
