@@ -3,16 +3,16 @@ package com.svms.job.handler;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ReportJobHandler implements JobHandler {
+public class PaymentRetryJobHandler implements JobHandler {
 
     @Override
     public void execute(String payload) {
-        System.out.println("Generating report with payload: " + payload);
+        System.out.println("Retrying payment: " + payload);
     }
 
     @Override
     public String getJobType() {
-        return "REPORT";
+        return "PAYMENT_RETRY";
     }
 
     @Override

@@ -14,4 +14,9 @@ public class DataSyncJobHandler implements JobHandler {
     public String getJobType() {
         return "DATA_SYNC";
     }
+
+    @Override
+    public String extractIdempotencyKey(String payload) {
+        return payload; // paymentId
+    }
 }

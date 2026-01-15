@@ -15,4 +15,9 @@ public class EmailJobHandler implements JobHandler {
         return "EMAIL";
     }
 
+    @Override
+    public String extractIdempotencyKey(String payload) {
+        return payload; // paymentId
+    }
+
 }

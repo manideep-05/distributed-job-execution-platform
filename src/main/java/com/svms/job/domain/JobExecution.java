@@ -20,6 +20,9 @@ public class JobExecution {
     @Enumerated(EnumType.STRING)
     private ExecutionStatus status;
 
+    @Column(unique = true)
+    private String idempotencyKey;
+
     private int attempt;
 
     private LocalDateTime nextRunAt;

@@ -7,6 +7,9 @@ import com.svms.job.handler.JobHandler;
 import com.svms.job.handler.JobHandlerRegistry;
 import com.svms.job.repository.JobDefinitionRepository;
 import com.svms.job.repository.JobExecutionRepository;
+import com.svms.job.service.BackoffCalculator;
+import com.svms.job.service.IdempotencyService;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -21,12 +24,17 @@ public class JobWorker {
     private final JobExecutionRepository jobExecutionRepository;
     private final JobDefinitionRepository jobDefinitionRepository;
     private final JobHandlerRegistry handlerRegistry;
+    private final BackoffCalculator backoffCalculator;
+    private final IdempotencyService idempotencyService;
 
     public JobWorker(JobExecutionRepository jobExecutionRepository, JobDefinitionRepository jobDefinitionRepository,
-            JobHandlerRegistry handlerRegistry) {
+            JobHandlerRegistry handlerRegistry, BackoffCalculator backoffCalculator,
+            IdempotencyService idempotencyService) {
         this.jobExecutionRepository = jobExecutionRepository;
         this.jobDefinitionRepository = jobDefinitionRepository;
         this.handlerRegistry = handlerRegistry;
+        this.backoffCalculator = backoffCalculator;
+        this.idempotencyService = idempotencyService;
     }
 
     /**
@@ -57,7 +65,19 @@ public class JobWorker {
 
             // ---- DUMMY JOB EXECUTION ----
             JobHandler handler = handlerRegistry.getHandler(job.getJobType());
+
+            // Idempotency check
+            String idempotencyKey = handler.extractIdempotencyKey(job.getPayload());
+
+            if (idempotencyService.isAlreadyProcessed(idempotencyKey)) {
+                execution.setStatus(ExecutionStatus.COMPLETED);
+                execution.setFinishedAt(LocalDateTime.now());
+                jobExecutionRepository.save(execution);
+                return;
+            }
+
             handler.execute(job.getPayload());
+            idempotencyService.markProcessed(idempotencyKey);
             Thread.sleep(2000); // simulate work
 
             // Mark COMPLETED
